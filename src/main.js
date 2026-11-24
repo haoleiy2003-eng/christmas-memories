@@ -215,19 +215,20 @@ async function toggleGestures() {
       await Promise.race([
         gestures.start(),
         new Promise((_, reject) => {
-          startupTimeout = setTimeout(() => reject(new DOMException('Gesture startup timed out', 'TimeoutError')), 45000);
+          const startupDelay = window.innerWidth < 760 || window.matchMedia('(pointer: coarse)').matches ? 90000 : 45000;
+          startupTimeout = setTimeout(() => reject(new DOMException('Gesture startup timed out', 'TimeoutError')), startupDelay);
         }),
       ]);
     } finally {
       clearTimeout(startupTimeout);
     }
     updateGestureUI(true);
-    notify('捏食指/中指/无名指/小指，分别查看第 1/2/3/4 张照片');
+    notify('手掌距屏幕约 30–60 厘米；四指捏合分别查看第 1/2/3/4 张照片');
   } catch (error) {
     console.error('Gesture initialization failed:', error);
     gestures?.stop();
     updateGestureUI(false);
-    if (error.name === 'NotAllowedError') notify('未获得摄像头权限，可在浏览器设置中允许后重试');
+    if (error.name === 'NotAllowedError' || error.name === 'SecurityError') notify('未获得摄像头权限，请在浏览器设置中允许；微信可尝试“在浏览器打开”');
     else if (error.name === 'NotFoundError') notify('没有检测到摄像头，仍可用按钮和鼠标操作');
     else if (error.name === 'NotReadableError') notify('摄像头正被其他应用占用，请关闭后重试');
     else if (error.name === 'TimeoutError') notify('手势启动超时，请检查摄像头权限后重试');

@@ -15,6 +15,14 @@ const PINCH_FINGERS = [
 
 const distance = (a, b) => Math.hypot(a.x - b.x, a.y - b.y, a.z - b.z);
 
+export function getRuntimeProfile(coarsePointer, narrowScreen) {
+  const mobile = coarsePointer || narrowScreen;
+  return {
+    delegate: mobile ? 'CPU' : 'GPU',
+    detectionInterval: mobile ? 90 : 0,
+  };
+}
+
 export class GestureController {
   constructor({ video, canvas, onGesture, onHand, onStatus, onStage }) {
     this.video = video;
@@ -24,9 +32,14 @@ export class GestureController {
     this.onHand = onHand;
     this.onStatus = onStatus;
     this.onStage = onStage;
+    this.profile = getRuntimeProfile(
+      window.matchMedia('(pointer: coarse)').matches,
+      window.innerWidth < 760,
+    );
     this.active = false;
     this.requestId = 0;
     this.lastVideoTime = -1;
+    this.lastDetectionTime = 0;
     this.candidate = 'none';
     this.candidateFrames = 0;
     this.lastCommitted = 'none';
@@ -41,14 +54,15 @@ export class GestureController {
     this.assertCurrent(requestId);
     const base = import.meta.env.BASE_URL;
     const vision = await FilesetResolver.forVisionTasks(`${base}wasm`);
+    const fallbackDelegate = this.profile.delegate === 'CPU' ? 'GPU' : 'CPU';
     try {
       this.landmarker = await HandLandmarker.createFromOptions(vision, {
-        baseOptions: { modelAssetPath: `${base}models/hand_landmarker.task`, delegate: 'GPU' },
+        baseOptions: { modelAssetPath: `${base}models/hand_landmarker.task`, delegate: this.profile.delegate },
         runningMode: 'VIDEO', numHands: 1,
       });
     } catch {
       this.landmarker = await HandLandmarker.createFromOptions(vision, {
-        baseOptions: { modelAssetPath: `${base}models/hand_landmarker.task`, delegate: 'CPU' },
+        baseOptions: { modelAssetPath: `${base}models/hand_landmarker.task`, delegate: fallbackDelegate },
         runningMode: 'VIDEO', numHands: 1,
       });
     }
@@ -78,9 +92,12 @@ export class GestureController {
   detect() {
     if (!this.active) return;
     this.frame = requestAnimationFrame(() => this.detect());
+    const now = performance.now();
     if (document.hidden || this.video.readyState < 2 || this.video.currentTime === this.lastVideoTime) return;
+    if (now - this.lastDetectionTime < this.profile.detectionInterval) return;
+    this.lastDetectionTime = now;
     this.lastVideoTime = this.video.currentTime;
-    const result = this.landmarker.detectForVideo(this.video, performance.now());
+    const result = this.landmarker.detectForVideo(this.video, now);
     const landmarks = result.landmarks?.[0];
     this.draw(landmarks);
     if (!landmarks) {

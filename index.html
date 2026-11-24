@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#030d21" />
+    <meta name="description" content="一棵由星光、照片与回忆组成的交互式圣诞树。支持手势、鼠标与触摸操作。" />
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cpath fill='%23f5cf75' d='M32 3l7 20 21 1-16 13 5 21-17-12-17 12 5-21L4 24l21-1z'/%3E%3C/svg%3E" />
+    <title>Christmas Memories · 星光圣诞树</title>
+  </head>
+  <body>
+    <div id="app">
+      <div id="scene" role="img" aria-label="可交互的金色三维粒子圣诞树，照片如挂饰般环绕在树旁">
+        <p class="webgl-fallback">此体验需要支持 WebGL 的现代浏览器。</p>
+      </div>
+      <div class="vignette" aria-hidden="true"></div>
+      <div class="grain" aria-hidden="true"></div>
+
+      <header class="topbar">
+        <a class="brand" href="./" aria-label="Christmas Memories 首页">
+          <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M16 2l3.3 10.2L30 16l-10.7 3.8L16 30l-3.3-10.2L2 16l10.7-3.8L16 2z" /></svg>
+          <span>CHRISTMAS<small>MEMORIES</small></span>
+        </a>
+
+        <nav class="mode-switch" aria-label="圣诞树模式">
+          <button class="mode-button active" data-mode="tree" aria-pressed="true">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l3 5h-2l4 6h-3l5 7H5l5-7H7l4-6H9l3-5z" /></svg>
+            <span>聚合</span>
+          </button>
+          <button class="mode-button" data-mode="scatter" aria-pressed="false">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="7" r="2"/><circle cx="17" cy="5" r="1.5"/><circle cx="19" cy="15" r="2"/><circle cx="8" cy="18" r="1.5"/><circle cx="12" cy="11" r="1"/></svg>
+            <span>散开</span>
+          </button>
+          <button class="mode-button" data-mode="focus" aria-pressed="false">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3H3v5M16 3h5v5M3 16v5h5M21 16v5h-5"/><circle cx="12" cy="12" r="3"/></svg>
+            <span>照片聚焦</span>
+          </button>
+        </nav>
+
+        <div class="top-actions">
+          <input id="photo-input" type="file" accept="image/jpeg,image/png,image/webp,image/gif" multiple hidden />
+          <audio id="background-music" src="%BASE_URL%music/silent-night.wav" preload="none" loop hidden></audio>
+          <button id="music-button" class="text-button music-button" aria-pressed="false" title="Silent Night · 本地生成器乐版">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18V6l10-2v12M9 9l10-2"/><circle cx="6" cy="18" r="3"/><circle cx="16" cy="16" r="3"/></svg>
+            <span id="music-button-label">圣诞音乐</span>
+          </button>
+          <button id="upload-button" class="text-button">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V3m-5 5l5-5 5 5M5 13v7h14v-7"/></svg>
+            <span>上传照片</span>
+          </button>
+          <button id="gesture-button" class="gesture-button" aria-pressed="false">
+            <span class="status-dot"></span>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 12V6a2 2 0 014 0v5-7a2 2 0 014 0v7-5a2 2 0 014 0v9c0 5-3 7-7 7-3 0-5-2-7-5l-3-4a2 2 0 013-2l2 1z"/></svg>
+            <span id="gesture-button-label">开启手势</span>
+          </button>
+        </div>
+      </header>
+
+      <section class="hero-copy" aria-label="圣诞祝福">
+        <p><span></span> A LITTLE MAGIC, JUST FOR YOU <span></span></p>
+        <h1>MERRY CHRISTMAS</h1>
+        <div class="hero-subtitle">愿所有美好，都如约而至</div>
+      </section>
+
+      <div class="edition" aria-hidden="true"><span>EST. 2026</span><i></i><span>VOL. 01</span></div>
+
+      <section id="camera-card" class="camera-card" aria-label="手势识别预览">
+        <video id="webcam" autoplay muted playsinline></video>
+        <canvas id="hand-canvas" width="320" height="240"></canvas>
+        <div id="camera-placeholder" class="camera-placeholder">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 12V6a2 2 0 014 0v5-7a2 2 0 014 0v7-5a2 2 0 014 0v9c0 5-3 7-7 7-3 0-5-2-7-5l-3-4a2 2 0 013-2l2 1z"/></svg>
+          <span>让美好，触手可及</span>
+          <small>四指捏合选照片 · 张手散开 · 握拳聚合</small>
+        </div>
+        <div class="camera-header"><span><i></i> HAND TRACKING</span><b id="tracking-state">OFF</b></div>
+        <div id="gesture-name" class="gesture-name" hidden>等待手势</div>
+      </section>
+
+      <section class="memory-panel" aria-label="照片预览">
+        <div class="panel-heading"><span>MEMORIES</span><small><b id="memory-count">06</b> MOMENTS</small></div>
+        <div id="memory-list" class="memory-list"></div>
+        <button id="add-photo" class="add-photo" aria-label="添加照片">＋</button>
+        <p>每一张照片，都是一颗星</p>
+      </section>
+
+      <div class="interaction-hint">
+        <span class="mouse-icon" aria-hidden="true"><i></i></span>
+        <span>拖动旋转</span><b>·</b><span>滚轮缩放</span><b>·</b><kbd>SPACE</kbd><span>切换形态</span>
+      </div>
+
+      <button id="close-focus" class="close-focus" hidden>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+        返回圣诞树
+      </button>
+      <div id="focus-caption" class="focus-caption" hidden><span>MEMORY</span><b>01 / 06</b></div>
+      <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+      <div id="loader" class="loader" aria-live="polite">
+        <div class="loader-star">✦</div>
+        <span>正在为你点亮星光</span>
+        <div class="loader-line"><i></i></div>
+      </div>
+    </div>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>

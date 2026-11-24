@@ -1,0 +1,4 @@
+Silent Night (instrumental)
+Melody: Traditional Christmas carol, public domain.
+Audio: Instrumental synthesis generated locally for this project; no third-party recording is used.
+Format: 22,050 Hz, 16-bit mono WAV, approximately 63 seconds, loop enabled in the page.
